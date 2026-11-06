@@ -3,8 +3,8 @@
 Release hub for text-to-speech models of **Northern Tujia (Longshan Miaoertan standard pronunciation)**.
 
 This repository distributes synthesis checkpoints, inference scripts, and the intelligibility
-evaluation protocol. Data production, training and experiments live in
-[tujia-tts-lab](https://github.com/ibaibing/tujia-tts-lab).
+evaluation protocol. Data production, training and experiments live in the private
+`tujia-tts-lab` repository.
 
 > **Status: no public release yet.**
 > The first end-to-end model (`vits_tujia-v1`, 2,390 clips / 1.87 h, val mel 0.450) was trained
@@ -51,7 +51,7 @@ Protocol details will be published with the first passing release.
 | Repository | Role |
 | --- | --- |
 | [TujiaNLP](https://github.com/ibaibing/TujiaNLP) | Corpus, collection standards, licensing |
-| [tujia-tts-lab](https://github.com/ibaibing/tujia-tts-lab) | Training and experiments |
+| `tujia-tts-lab` (private) | Training and experiments |
 | [tujia-asr](https://github.com/ibaibing/tujia-asr) | The reverse direction: speech → syllables |
 | [tujia-llm](https://github.com/ibaibing/tujia-llm) | Language model layer |
 
