@@ -1,0 +1,10 @@
+Usage boundaries — tujia-tts
+
+Code in this repository is MIT-licensed (see LICENSE).
+
+Model weights are provided for research use only. No rights are granted to the
+training recordings, their transcripts, or the voices of the speakers, and none
+of that material is distributed here.
+
+Synthesized audio must not be presented as a recording of a real person, and
+voice cloning of any speaker requires that speaker's explicit consent.
