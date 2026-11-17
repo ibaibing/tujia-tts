@@ -1,50 +1,85 @@
 # tujia-tts
 
-Release hub for text-to-speech models of **Northern Tujia (Longshan Miaoertan standard pronunciation)**.
+Text-to-speech for **Northern Tujia (Longshan Miaoertan standard pronunciation)**.
+Input is **Ye pinyin** (`hufnix davhar niev caif kax`), output is **16 kHz mono** speech.
 
-This repository distributes synthesis checkpoints, inference scripts, and the intelligibility
-evaluation protocol. Data production, training and experiments live in the private
-`tujia-tts-lab` repository.
+> **v0.2 released — single speaker, `badou` only.**
+> Weights: `vits_tujia-v0.2` (4.10 h / 3,403 clips, Run B epoch 113, val mel 0.5108).
+> The ONNX graph has no speaker input, so there is no second voice to select.
+> Details and limitations: [MODEL_CARD.md](MODEL_CARD.md).
 
-> **Status: no public release yet.**
-> The first end-to-end model (`vits_tujia-v1`, 2,390 clips / 1.87 h, val mel 0.450) was trained
-> and is **not usable**: an intelligibility probe (19 words) measured a median speaker similarity
-> of 0.40 on real audio versus 0.00–0.20 on synthesized audio. Shipping it would do more harm
-> than good. The next attempt depends on the corpus v0.1/v0.2 rebuild.
+Data production, training and experiments live in the private `tujia-tts-lab` repository;
+this repository only carries the released model, the text front-end, and evaluation notes.
 
-## Planned releases
+## Install
 
-| Version | Data | Engine | Gate | Status |
-| --- | --- | --- | --- | --- |
-| v1 | 2,390 clips / 1.87 h | VITS | intelligibility | Failed the probe, not released |
-| v2 | corpus v0.1 (single-speaker clean slice) | TBD | median similarity ≥ 0.5, tone acceptable to native listeners | Planned |
-| v3 | corpus v0.2 | TBD | + cross-speaker generalisation | Planned |
-
-A version is released only if it passes the intelligibility gate. Weights are never released
-on the basis of training loss alone.
-
-## What will be here
-
+```bash
+python3 -m pip install tujia-tts          # pulls onnxruntime + numpy, ships the ONNX model
+tujia-tts --text "hufnix davhar niev caif kax" -o out.wav
 ```
-README.md              this file
-LICENSE                MIT (code)
-NOTICE                 usage boundaries for weights
-requirements.txt       inference dependencies
-synth.py               text → waveform entry point
-phones/                IPA inventory and text front-end rules
-docs/protocol.md       intelligibility and tone evaluation protocol
-docs/usage.md          install, download, sample-rate and device notes
-releases/              versioned archives + SHA256SUMS
+
+Or use it as a library:
+
+```python
+from tujia_tts import synthesize, write_wav
+
+audio, sr, n_unknown, n_ids = synthesize("af gov diex caf")
+write_wav("out.wav", audio, sr)
 ```
+
+`n_unknown > 0` means some syllables or symbols did not enter the phoneme table — check the
+spelling, or note that Chinese characters are not supported (they raise if nothing usable
+is left).
+
+## Versions
+
+| Version | Data | Engine | Status |
+|---|---|---|---|
+| v0.1 | 2,390 clips / 1.87 h, male teacher | VITS | Failed the intelligibility probe; not released |
+| v0.2 | 3,403 clips / 4.10 h, unified to `badou` | VITS + ONNX | **Current release** |
+
+A version ships only after the intelligibility probe, never on training loss alone.
+
+## Pre- and post-processing
+
+Text: corpus notation normalisation (`*loanword*2`, `bi2zi1ka3`, `A:` tags, syllable-final
+`y`→`v`) → syllable split → IPA (`z/c/s/r + i → ɿ`) → one `T0`–`T4` tone token per syllable →
+unknown symbols dropped and counted.
+
+Waveform: trim leading/trailing silence (−40 dBFS, 30 ms margin) → peak normalise to
+−1 dBFS → 10 ms fade. `--no-trim` keeps raw length; `--target-dbfs` changes the target.
+
+**Duration is stochastic across processes.** The exported graph's stochastic duration
+predictor (`/dp/RandomNormalLike`) was frozen at export and is not driven by `noise_scale`,
+so the same text can differ from one process to the next. For reproducible output, patch
+the node seed or draw from a fixed `length_scale`.
 
 ## Evaluation
 
-- **Intelligibility**: forced-choice listening on 19 probe words plus a synthesized-vs-real
-  similarity sweep; the primary number is median speaker similarity.
-- **Tone**: native-listener acceptance of the four tones `21 / 35 / 53 / 55`.
-- **Robustness**: same sentence across speakers; refusal to score on unseen phonotactics.
+| Metric | Value |
+|---|---|
+| Phone error rate, 40 sentence probes (synthesized) | 0.784 (median) |
+| Phone error rate, same probes (human audio) | 0.567 |
+| Speaker cosine to studio `badou` reference | 0.814 (training target: 0.812) |
 
-Protocol details will be published with the first passing release.
+Tone acceptance by native listeners is collected per release and recorded in `releases/`.
+
+## Layout
+
+```
+README.md                  this file
+MODEL_CARD.md              model card (training, metrics, limitations)
+LICENSE                    MIT (code)
+NOTICE                     usage boundaries for weights
+requirements.txt           inference dependencies
+pyproject.toml             tujia-tts package metadata
+src/tujia_tts/             front-end (Ye pinyin), synthesis, post-processing
+src/tujia_tts/data/        vits_tujia-v0.2.onnx + piper-style config
+examples/                  sample outputs
+docs/usage.md              install, devices, sample-rate notes
+releases/                  per-version release notes
+release/upload.sh          GitHub / Hugging Face / ModelScope / PyPI helper
+```
 
 ## Related
 
