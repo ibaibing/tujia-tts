@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
-"""土家语 VITS（v0.2）本地合成：Ye 拼音 → 16 kHz 语音。
+"""Tujia VITS (v0.3) synthesis: Ye pinyin / IPA -> 16 kHz speech.
 
-用法：
+Usage:
   python3 synth.py --text "hufnix davhar niev caif kax" -o out.wav
+  python3 synth.py --text "xu21 ni21" -o out.wav --notation ipa
   python3 synth.py --text "af gov diex caf" -o a.wav --length-scale 1.0
 
-输入必须是 **Ye 拼音**（如 af gov diex caf），不是汉字。
-依赖：onnxruntime、numpy；模型与音素表随本目录一起分发。
+Input may be **Ye pinyin** (e.g. af gov diex caf) or **toned IPA** (e.g. a35 ko53);
+the notation is detected automatically. Chinese characters are not supported.
+Dependencies: onnxruntime, numpy, tujia-nlp. The model and its phoneme table
+ship with this directory.
 
-预处理：语料记法归一（借词星号 / 数字调 / 说话人标签 / 音节末 y→v）→ 音节切分
-→ 声韵母转 IPA → 每音节补调 token → 未知符号丢弃并计数（不静默崩溃）。
-后处理：掐首尾静音 → 峰值归一（默认 −1 dBFS）→ 10 ms 淡入淡出（去爆音）。
+Pre-processing: notation cleanup (syllable-final y -> v) -> syllable split
+-> initial/final to IPA -> one tone token per syllable -> unknown symbols are
+dropped and counted instead of raising mid-synthesis.
+Post-processing: trim leading/trailing silence -> peak normalise (default
+-1 dBFS) -> 10 ms fade in/out.
 """
 import argparse
 import json
@@ -21,29 +26,30 @@ import wave
 import numpy as np
 import onnxruntime as ort
 
-try:                       # 作为 tujia_tts 包的一部分被导入
-    from .ye_phonemes import to_ids, tokenize_ye
-except ImportError:        # 直接跑 python3 synth.py
-    from ye_phonemes import to_ids, tokenize_ye
+try:                       # imported as part of the tujia_tts package
+    from .frontend import to_ids, tokenize
+except ImportError:        # run directly: python3 synth.py
+    from frontend import to_ids, tokenize
 
 _CJK_RE = re.compile(r"[\u3400-\u9fff]")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# 直接使用时模型与代码同目录；装成包后模型在 tujia_tts/data/ 下
+# When used directly the model sits next to the code; once installed it lives
+# under tujia_tts/data/.
 _DATA = os.path.join(HERE, "data")
-if os.path.exists(os.path.join(_DATA, "vits_tujia-v0.2.onnx")):
+if os.path.exists(os.path.join(_DATA, "vits_tujia-v0.3.onnx")):
     HERE = _DATA
-DEFAULT_ONNX = os.path.join(HERE, "vits_tujia-v0.2.onnx")
-DEFAULT_VOICE = os.path.join(HERE, "vits_tujia-v0.2.onnx.json")
+DEFAULT_ONNX = os.path.join(HERE, "vits_tujia-v0.3.onnx")
+DEFAULT_VOICE = os.path.join(HERE, "vits_tujia-v0.3.onnx.json")
 
-TRIM_THR_DB = -40.0     # 首尾静音阈值（相对峰值）
-TRIM_MARGIN = 0.03      # 掐静音后保留的余量（秒）
-TARGET_DBFS = -1.0      # 峰值归一目标
-FADE_MS = 10.0          # 淡入淡出时长
+TRIM_THR_DB = -40.0     # silence threshold relative to peak
+TRIM_MARGIN = 0.03      # seconds kept around the trimmed region
+TARGET_DBFS = -1.0      # peak normalisation target
+FADE_MS = 10.0          # fade in/out length
 
 
 def trim_silence(x, sr, thr_db=TRIM_THR_DB, margin=TRIM_MARGIN):
-    """按峰值相对阈值掐掉首尾静音。"""
+    """Trim leading/trailing silence using a threshold relative to the peak."""
     if x.size == 0:
         return x
     peak = float(np.max(np.abs(x)))
@@ -58,7 +64,7 @@ def trim_silence(x, sr, thr_db=TRIM_THR_DB, margin=TRIM_MARGIN):
 
 
 def normalize_peak(x, target_dbfs=TARGET_DBFS):
-    """峰值归一到 target_dbfs；全静音输入原样返回。"""
+    """Normalise the peak to target_dbfs; all-silent input is returned as is."""
     peak = float(np.max(np.abs(x))) if x.size else 0.0
     if peak <= 0:
         return x
@@ -66,7 +72,7 @@ def normalize_peak(x, target_dbfs=TARGET_DBFS):
 
 
 def fade(x, sr, ms=FADE_MS):
-    """首尾短淡入淡出，避免切点爆音。"""
+    """Short fade in/out to avoid clicks at the cut points."""
     n = int(sr * ms / 1000.0)
     if n < 2 or x.size <= 2 * n:
         return x
@@ -78,7 +84,7 @@ def fade(x, sr, ms=FADE_MS):
 
 
 def postprocess(audio, sr, do_trim=True, target_dbfs=TARGET_DBFS, fade_ms=FADE_MS):
-    """合成波形 → 可直接播放的波形（掐静音 + 峰值归一 + 淡入淡出）。"""
+    """Synthesized waveform -> playable waveform (trim + peak normalise + fade)."""
     x = np.asarray(audio, dtype=np.float32).reshape(-1)
     if do_trim:
         x = trim_silence(x, sr)
@@ -89,24 +95,30 @@ def postprocess(audio, sr, do_trim=True, target_dbfs=TARGET_DBFS, fade_ms=FADE_M
 
 def synthesize(text, onnx_path=DEFAULT_ONNX, voice_path=DEFAULT_VOICE,
                length_scale=None, noise_scale=None, noise_w=None,
-               do_postprocess=True, target_dbfs=TARGET_DBFS):
-    """Ye 拼音 → (float 波形, 采样率, 未识别音节数, id 数)。"""
+               do_postprocess=True, target_dbfs=TARGET_DBFS, notation="auto"):
+    """Ye pinyin or toned IPA -> (float waveform, sample rate, n_unknown, n_ids).
+
+    ``notation``: ``"ye"`` / ``"ipa"`` / ``"auto"`` (default: detect by character).
+    """
     with open(voice_path, encoding="utf-8") as f:
         cfg = json.load(f)
     id_map = cfg["phoneme_id_map"]
     sr = int(cfg["audio"]["sample_rate"])
     infer = cfg.get("inference") or {}
 
-    tokens, n_bad = tokenize_ye(text)
-    # 音素表里没有的符号（旧版本音素表差异、拼写里的怪字符）直接丢弃并计数，
-    # 否则 to_ids 会 KeyError 把整条合成打断。
+    tokens, n_bad = tokenize(text, notation=notation, id_map=id_map)
+    # Symbols missing from the phoneme table (older inventories, stray
+    # characters) are dropped and counted; otherwise to_ids would raise KeyError
+    # and abort the whole synthesis.
     kept = [t for t in tokens if t in id_map]
     n_bad += len(tokens) - len(kept)
-    # 汉字会被文本归一扫掉（不是 Ye 拼写），单独计数，避免「unknown: 0」的误导
+    # Chinese characters are stripped by the text cleanup (they are not Ye
+    # spelling); count them so "unknown: 0" cannot mislead.
     n_bad += len(_CJK_RE.findall(str(text)))
     if not [t for t in kept if t != " "]:
-        raise ValueError("没有可用音素：输入必须是 Ye 拼音（如 af gov diex caf），"
-                         "汉字/数字/标点会被忽略")
+        raise ValueError("no usable phonemes: input must be Ye pinyin "
+                         "(e.g. af gov diex caf) or toned IPA (e.g. a35 ko53); "
+                         "Chinese characters, digits and punctuation are ignored")
     ids = to_ids(kept, id_map)
 
     sess = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
@@ -135,27 +147,32 @@ def write_wav(path, audio, sr):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="土家语 VITS（v0.2）Ye 拼音 → 语音")
-    ap.add_argument("--text", required=True, help='Ye 拼音，如 "hufnix davhar niev caif kax"')
-    ap.add_argument("-o", "--out", default="out.wav", help="输出 wav 路径")
-    ap.add_argument("--onnx", default=DEFAULT_ONNX, help="模型 .onnx")
-    ap.add_argument("--voice", default=DEFAULT_VOICE, help="模型旁的 .onnx.json")
-    ap.add_argument("--length-scale", type=float, default=None, help="语速：>1 更慢")
+    ap = argparse.ArgumentParser(description="Tujia VITS (v0.3): Ye pinyin / IPA -> speech")
+    ap.add_argument("--text", required=True,
+                    help='Ye pinyin "hufnix davhar niev caif kax" or toned IPA "xu21 ni21"')
+    ap.add_argument("--notation", choices=["auto", "ye", "ipa"], default="auto",
+                    help="input notation (default: detect automatically)")
+    ap.add_argument("-o", "--out", default="out.wav", help="output wav path")
+    ap.add_argument("--onnx", default=DEFAULT_ONNX, help="model .onnx")
+    ap.add_argument("--voice", default=DEFAULT_VOICE, help=".onnx.json next to the model")
+    ap.add_argument("--length-scale", type=float, default=None,
+                    help="speaking rate: >1 is slower")
     ap.add_argument("--noise-scale", type=float, default=None)
     ap.add_argument("--noise-w", type=float, default=None)
-    ap.add_argument("--no-trim", action="store_true", help="不掐首尾静音")
+    ap.add_argument("--no-trim", action="store_true",
+                    help="keep leading/trailing silence")
     ap.add_argument("--target-dbfs", type=float, default=TARGET_DBFS,
-                    help="峰值归一目标（默认 -1 dBFS）")
+                    help="peak normalisation target (default -1 dBFS)")
     a = ap.parse_args()
 
     audio, sr, n_bad, n_ids = synthesize(
         a.text, a.onnx, a.voice, a.length_scale, a.noise_scale, a.noise_w,
-        do_postprocess=not a.no_trim, target_dbfs=a.target_dbfs)
+        do_postprocess=not a.no_trim, target_dbfs=a.target_dbfs, notation=a.notation)
     write_wav(a.out, audio, sr)
     peak = 20 * np.log10(max(1e-9, float(np.max(np.abs(audio)))))
     print("text   :", a.text)
     print("ids    :", n_ids)
-    print("unknown:", n_bad, "（>0 表示有音节/符号没有进入音素表）")
+    print("unknown:", n_bad, "(>0 means some syllables/symbols are not in the phoneme table)")
     print("audio  : %.2fs @ %d Hz, peak %.1f dBFS -> %s"
           % (len(audio) / sr, sr, peak, a.out))
 

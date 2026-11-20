@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tujia-tts"
-version = "0.2.0"
+version = "0.3.0"
 description = "Tujia text-to-speech: Ye pinyin to 16 kHz waveform (single-speaker, ONNX)"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,12 +22,13 @@ classifiers = [
 dependencies = [
   "onnxruntime>=1.16",
   "numpy>=1.21",
+  "tujia-nlp>=0.3",
 ]
 
 [project.urls]
 Homepage = "https://github.com/ibaibing/tujia-tts"
-"Model (Hugging Face)" = "https://huggingface.co/TujiaNLP/tujia-tts-v0.2"
-"Model (ModelScope)" = "https://modelscope.cn/models/TujiaNLP/tujia-tts-v0.2"
+"Model (Hugging Face)" = "https://huggingface.co/TujiaNLP/tujia-tts-v0.3"
+"Model (ModelScope)" = "https://modelscope.cn/models/TujiaNLP/tujia-tts-v0.3"
 
 [project.scripts]
 tujia-tts = "tujia_tts.synth:main"

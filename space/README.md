@@ -15,7 +15,7 @@ short_description: Tujia text to speech (Ye pinyin / IPA), single badou voice
 
 Ye 拼音或带调 IPA → 16 kHz 语音，单音色 **badou**。
 
-- 模型：`TujiaNLP/tujia-tts-v0.2`（VITS，ONNX，63 MB）
+- 模型：`TujiaNLP/tujia-tts-v0.3`（VITS，ONNX，63 MB）
 - 代码：https://github.com/ibaibing/tujia-tts
 - 安装：`pip install tujia-tts`
 
@@ -32,9 +32,9 @@ Ye 拼音或带调 IPA → 16 kHz 语音，单音色 **badou**。
 ## 已知限制
 
 1. **不是 piper 标准语音**：音素表含双字符调 token（`T0`–`T4`），须用自带前端。
-2. **时长带随机采样**：导出图里的随机时长预测器在导出时冻结了噪声尺度，同一句换个进程时长会变（实测 1.2–2.8 秒），要可复现需固定 `length_scale` 或修补节点种子。
-3. **声调近似**：连读变调与强调拉长未建模。
-4. **单音节词最脆**：受上面的时长随机影响最大。
+2. **声调近似**：连读变调与强调拉长未建模。
+3. **单音节词最脆**：短词受韵律与 16 ms 帧率影响最大。
+4. **爆破音瞬态被抹平**：16 kHz / 256 hop 的帧率比塞音爆发段粗，合成音偏亮。
 5. 模型为研究预览，正式使用（出版、教学材料）前请由母语者校对。
 
 ## 许可边界

@@ -15,9 +15,8 @@ Released 2026-11-17. First public release.
 
 ## Provenance
 
-Trained in the private `tujia-tts-lab` repository, Run B, epoch 113
-(`epoch=0113`, validation mel loss 0.5108) on 3,403 clips / 4.10 h from four sources,
-all converted to the `badou` timbre with Seed-VC.
+Trained on 3,403 clips / 4.10 h from four sources, all converted to the `badou` timbre
+(validation mel loss 0.5108 at the released checkpoint). Training data is not distributed.
 
 ## What changed from v0.1
 

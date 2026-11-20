@@ -8,11 +8,11 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-v0.2}"
+VERSION="${VERSION:-v0.3}"
 ORG="${ORG:-TujiaNLP}"
 REPO="${REPO:-tujia-tts-${VERSION}}"
-MODEL="${MODEL:-$ROOT/src/tujia_tts/data/vits_tujia-v0.2.onnx}"
-CFG="${CFG:-$ROOT/src/tujia_tts/data/vits_tujia-v0.2.onnx.json}"
+MODEL="${MODEL:-$ROOT/src/tujia_tts/data/vits_tujia-${VERSION}.onnx}"
+CFG="${CFG:-$ROOT/src/tujia_tts/data/vits_tujia-${VERSION}.onnx.json}"
 
 STAGE="$(mktemp -d)"
 

@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
-"""tujia-tts — 土家语语音合成（Ye 拼音 → 16 kHz 波形）。
+"""tujia-tts: Tujia speech synthesis (Ye pinyin / IPA -> 16 kHz waveform).
 
-发布版本与音色：v0.2，单说话人 **badou**。
+Release v0.3, single speaker: **badou**.
 """
+from .frontend import (  # noqa: F401
+    detect_notation,
+    to_ids,
+    tokenize,
+    tokenize_ipa,
+    tokenize_ye,
+)
 from .synth import (  # noqa: F401
     DEFAULT_ONNX,
     DEFAULT_VOICE,
@@ -10,10 +17,10 @@ from .synth import (  # noqa: F401
     synthesize,
     write_wav,
 )
-from .ye_phonemes import tokenize_ye, to_ids  # noqa: F401
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
-    "synthesize", "postprocess", "write_wav", "tokenize_ye", "to_ids",
+    "synthesize", "postprocess", "write_wav",
+    "tokenize", "tokenize_ye", "tokenize_ipa", "to_ids", "detect_notation",
     "DEFAULT_ONNX", "DEFAULT_VOICE", "__version__",
 ]
