@@ -244,7 +244,7 @@ v0.3 的时长预测器固定了种子，这是刻意的。想听不同版本，
 | 推理代码 | [github.com/ibaibing/tujia-tts](https://github.com/ibaibing/tujia-tts) | PyPI 包 `tujia-tts`，当前 0.3.0 |
 | 代码镜像 | [gitee.com/xbaibing/tujia-tts](https://gitee.com/xbaibing/tujia-tts) | 国内访问 |
 | 模型权重 | `TujiaNLP/tujia-tts-v0.3` | ONNX 63 MB + piper 风格配置 |
-| 在线演示 | `space/` | Gradio 应用，随本版同步到 Hugging Face Space 与 ModelScope 创空间 |
+| 在线演示 | [创空间 tujia-tts-demo](https://modelscope.cn/studios/TujiaNLP/tujia-tts-demo) | 网页合成，随本版更新 |
 | 版本说明 | `releases/tujia-tts-v0.3.md` | 与 v0.2 的逐项差异 |
 | 训练数据 | 不公开 | 发布包只含推理权重与前端 |
 
@@ -260,3 +260,4 @@ v0.3 的时长预测器固定了种子，这是刻意的。想听不同版本，
 6. TujiaNLP — 语料、正字法与 `tujia-nlp` 前端依赖。 <https://github.com/ibaibing/TujiaNLP>
 7. tujia-asr — 用于可懂度探针的反向识别管线。 <https://github.com/ibaibing/tujia-asr>
 8. PyPI — tujia-tts 0.3.0。 <https://pypi.org/project/tujia-tts/>
+9. ModelScope 创空间 — 在线合成演示。 <https://modelscope.cn/studios/TujiaNLP/tujia-tts-demo>
