@@ -5,12 +5,12 @@ Syllable splitting, initial/final parsing and tone-notation normalisation are
 delegated to **tujia-nlp** (``tujia_nlp.corpus`` / ``tujia_nlp.tones``); this
 module does not carry a second parser. It only keeps what is bound to the
 checkpoint: the 41-symbol inventory of v0.2 and the rule that appends one
-``T0``-``T4`` tone token per syllable.
+``T0``-``T4`` tone token per syllable (unmarked syllables are read as 21 = ``T3``).
 
 Accepted input:
 
 * Ye pinyin ``hufnix davhar niev caif kax`` (tone letters x/f/r/v, or digits 1-4)
-* IPA ``xu²¹ ni²¹`` / ``xu21 ni21`` / ``xu˨˩ ni˨˩`` (tone optional, defaults to T0)
+* IPA ``xu²¹ ni²¹`` / ``xu21 ni21`` / ``xu˨˩ ni˨˩`` (tone optional, defaults to 21 = T3)
 
 ``tokenize()`` detects the notation automatically; pass ``notation="ye"`` or
 ``notation="ipa"`` to force one parser.
@@ -32,13 +32,15 @@ PAD, BOS, EOS, SPACE = "_", "^", "$", " "
 # Initial/final tables come straight from tujia-nlp, the same tables used for
 # training: an/ang -> ã, en/eng -> ẽ, in/ing -> ĩ, on/ong -> ũ. The absence of
 # õ and of aŋ in the v0.2 inventory follows directly from those tables.
-# Tone: Ye tone letter / Chao digits -> tone token. T0 = no tone marked.
+# Tone: Ye tone letter / Chao digits -> tone token. Unmarked syllables default to
+# T3 (21): Tujia has no independent neutral tone, and the v0.4 model was trained
+# with 21 as the unmarked reading.
 TONE_TO_TOKEN = {
     "x": "T1", "1": "T1", "55": "T1",
     "f": "T2", "2": "T2", "35": "T2",
     "r": "T3", "3": "T3", "21": "T3",
     "v": "T4", "4": "T4", "53": "T4",
-    "": "T0",
+    "": "T3",
 }
 
 CHAO_LETTERS = {"˥": "5", "˦": "4", "˧": "3", "˨": "2", "˩": "1"}
@@ -89,7 +91,8 @@ def tokenize_ye(text: str):
     """Ye pinyin -> (token list, number of unrecognised syllables).
 
     Splitting and the initial/final tables come from tujia-nlp; this function
-    only applies ``z/c/s/r + i -> ɿ`` and appends one tone token per syllable.
+    only applies ``z/c/s/r + i -> ɿ`` and appends one tone token per syllable
+    (unmarked -> T3).
     """
     toks, n_bad = [], 0
     for word in _normalize_corpus_text(text).split():
@@ -106,7 +109,7 @@ def tokenize_ye(text: str):
                 n_bad += 1
                 continue
             toks += list(INITIAL_TO_IPA.get(ini, "") + fin_ipa)
-            toks.append(TONE_TO_TOKEN.get(tone, "T0"))
+            toks.append(TONE_TO_TOKEN.get(tone, "T3"))
         toks.append(SPACE)
     if toks and toks[-1] == SPACE:
         toks.pop()
@@ -117,7 +120,7 @@ def tokenize_ipa(text: str, id_map=None):
     """Toned IPA -> (token list, number of unrecognised symbols).
 
     Tones may be written as superscripts (``xu²¹``), Chao letters (``xu˨˩``)
-    or ASCII digits (``xu21``); omitted tones become T0. Syllables are cut at
+    or ASCII digits (``xu21``); omitted tones become T3 (21). Syllables are cut at
     tone marks and symbols are split per character, matching training.
     """
     toks, n_bad = [], 0
@@ -148,7 +151,7 @@ def tokenize_ipa(text: str, id_map=None):
                     n_bad += 1
                 else:
                     toks.append(ch)
-            toks.append(TONE_TO_TOKEN.get(t, "T0"))
+            toks.append(TONE_TO_TOKEN.get(t, "T3"))
         toks.append(SPACE)
     if toks and toks[-1] == SPACE:
         toks.pop()

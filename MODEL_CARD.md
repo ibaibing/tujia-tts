@@ -15,11 +15,11 @@ tags:
   - single-speaker
 ---
 
-# Model Card — tujia-tts v0.3
+# Model Card — tujia-tts v0.4
 
 ## Overview
 
-`vits_tujia-v0.3` is a single-speaker Tujia text-to-speech model. Input is **Ye pinyin**
+`vits_tujia-v0.4` is a single-speaker Tujia text-to-speech model. Input is **Ye pinyin**
 (the Ye De-shu transcription, tone letters `x / f / r / v`), output is **16 kHz mono**
 speech in **one voice only: badou**.
 
@@ -34,9 +34,10 @@ but has the failure modes listed below.
 
 | Item | Value |
 |---|---|
-| Checkpoint | `vits_tujia-v0.3`, validation mel loss 0.4523 |
-| Data | 3,958 clips / 6.40 h, timbre unified to **badou** |
+| Checkpoint | `vits_tujia-v0.4`, validation mel loss 0.4195 |
+| Data | 3,881 clips / 6.47 h, timbre unified to **badou**; clips padded with 150 ms of trailing silence |
 | Speakers | 1 (`num_speakers=1`, empty `speaker_id_map`) |
+| Initialisation | fine-tuned for 60 epochs from the v0.3 checkpoint |
 | Sample rate | 16,000 Hz |
 | Symbols | 41 (IPA phones + `T0`–`T4` tone tokens) |
 | Export | ONNX opset 15 + piper-style `.onnx.json` |
@@ -55,7 +56,7 @@ af gov diex caf
 ```
 
 **Toned IPA**: Chao digits, superscripts or Chao letters, one tone per syllable; a syllable
-without a tone is read as `T0`.
+without a tone is read as `T3` (21).
 
 ```
 xu21 ni21        xu²¹ ni²¹        xu˨˩ ni˨˩
@@ -77,15 +78,22 @@ Waveform side (`postprocess()`): trim leading/trailing silence (−40 dBFS relat
 
 ## Evaluation
 
-| Metric | v0.2 | v0.3 |
+| Metric | v0.3 | v0.4 |
 |---|---|---|
-| Phone error rate, 40 sentence probes (synthesized) | 0.784 | **0.690** (median) |
-| Phone error rate, same probes (human audio) | 0.567 | 0.567 |
-| Validation mel loss | 0.5108 | **0.4523** |
+| ASR error rate, 100 held-out sentences (synthesized) | 0.973 | **0.972** |
+| ASR error rate, same sentences (human recordings) | 0.805 | 0.804 |
+| Validation mel loss | 0.4523 | **0.4195** |
+| Median syllable duration (human: 222 ms) | 185 ms | **221 ms** |
+| Energy in the last 100 ms, relative to the whole clip | 0.237 | **0.000** |
 
-Same 40 sentence probes for both versions: synthesize, then send through the Tujia ASR and
-compare against the expected IPA phone string. The human row is the ASR's noise floor on
-the original recordings, so only the gap between the rows is meaningful.
+Same 100 held-out sentences for both versions: synthesize, then send through the Tujia ASR
+and compare against the expected IPA phone string. The human row is the ASR's noise floor
+on the original recordings, so only the gap between the rows is meaningful.
+
+ZIPA forced alignment on the same sentences shows aspiration moving towards the human
+values (onset present 0.556 → 0.634, human 0.802) while nasals and laterals give back a
+little (nasal 0.765 → 0.658, liquid 0.741 → 0.706). Overall onset presence is unchanged
+(0.676 → 0.679, human 0.805).
 
 ## Known limitations
 
@@ -124,3 +132,4 @@ educational use.
 | v0.1 | 1.87 h / 2,390 clips, male teacher | Failed intelligibility probe; not released |
 | v0.2 | 4.10 h / 3,403 clips, unified to badou | First public release |
 | v0.3 | 6.40 h / 3,958 clips, unified to badou | Longer corpus, deterministic duration, toned-IPA input |
+| v0.4 | 6.47 h / 3,881 clips, unified to badou, trailing silence padded | Fine-tune of v0.3: human-like syllable timing, no abrupt clip endings, unmarked syllables read as 21 |

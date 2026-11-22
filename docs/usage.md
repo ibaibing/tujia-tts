@@ -1,4 +1,4 @@
-# Usage notes — tujia-tts v0.3
+# Usage notes — tujia-tts v0.4
 
 ## Install
 
@@ -25,7 +25,7 @@ Both notations are accepted and auto-detected:
 | Input | Meaning |
 |---|---|
 | `hufnix davhar` | Ye pinyin, tone letters `x/f/r/v` (= 55/35/21/53) |
-| `xu21 ni21` / `xu²¹ ni²¹` / `xu˨˩ ni˨˩` | toned IPA, tone omitted → `T0` |
+| `xu21 ni21` / `xu²¹ ni²¹` / `xu˨˩ ni˨˩` | toned IPA, tone omitted → `T3` (21) |
 | `bi2zi1ka3` | Ye pinyin with digit tones (also parsed) |
 
 `--notation ye|ipa` forces one parser when auto-detection would mis-route a string.
@@ -66,6 +66,6 @@ There is no random duration drift as in v0.2.
 ## Piper compatibility
 
 The config looks piper-like (`piper_version`, `phoneme_type: "text"`) but is **not** a
-piper voice: the phoneme table contains two-character tone tokens (`T0`–`T4`) and the
+piper voice: the phoneme table contains two-character tone tokens (`T0`–`T4`; unmarked syllables use `T3`) and the
 "espeak voice" field is a placeholder. The standard `piper` front-end cannot drive this
 model; use `tujia_tts` / `tujia-tts`.

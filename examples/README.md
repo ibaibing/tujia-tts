@@ -1,14 +1,14 @@
-# Examples — v0.3 sample outputs
+# Examples — v0.4 sample outputs
 
-Three utterances synthesized by `vits_tujia-v0.3` at default settings
+Three utterances synthesized by `vits_tujia-v0.4` at default settings
 (`length_scale 1.0`, `noise_scale 0.667`, `noise_w 0.8`, post-processing on).
 16 kHz mono, peak −1 dBFS.
 
 | File | Input (Ye pinyin) | Meaning | Duration |
 |---|---|---|---|
-| [line_001.wav](line_001.wav) | `huf nix dar har niex caif kax` | 大家都过好日子 | 1.41 s |
-| [line_002.wav](line_002.wav) | `lox bax diex kax tiex bev` | 阿哥把犁搬 | 2.30 s |
-| [line_003.wav](line_003.wav) | `mar maf diex cer kur cev` | 阿妹绩麻线 | 2.24 s |
+| [line_001.wav](line_001.wav) | `huf nix dar har niex caif kax` | 大家都过好日子 | 1.63 s |
+| [line_002.wav](line_002.wav) | `lox bax diex kax tiex bev` | 阿哥把犁搬 | 2.41 s |
+| [line_003.wav](line_003.wav) | `mar maf diex cer kur cev` | 阿妹绩麻线 | 2.48 s |
 
 Reproduce any of them with:
 

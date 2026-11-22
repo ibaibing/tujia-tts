@@ -2,7 +2,7 @@
 
 > 技术与使用说明 · 2026-11
 > 面向：技术 / 非技术 / 语言学 / 土家语爱好者 / AI 爱好者
-> 版本：tujia-tts 0.3.0 · vits_tujia v0.3
+> 版本：tujia-tts 0.4.0 · vits_tujia v0.4（正文的 v0.3 叙述保留原文，v0.4 见下方补记）
 
 先给结论：**tujia-tts 不是「会说话的 AI」，而是一条把带调音节变成 16 kHz 波形的窄管线。** 它只认两种输入——Ye 拼音和带调 IPA——只输出一个声音（badou），不做翻译、不做汉字、不做多音色。真正决定「像不像土家语」的，一半在 6.40 小时语料，一半在前端怎样把音节拆成音素和调。
 
@@ -11,6 +11,27 @@
 | 3,958 | 训练片段数，合计 6.40 小时 | 单说话人，全部统一为 badou 音色 |
 | 41 | 模型能输出的符号数 | 32 个音段 + 5 个调 token + 4 个控制符 |
 | 0.690 | 40 句探针的合成音素错误率 | 同一套 ASR 下，真人录音是 0.567 |
+
+## v0.4 补记（2026-11-22）
+
+v0.4 是在 v0.3 基础上的**热启动微调**，不是重新训练。
+
+| 项目 | v0.3 | v0.4 |
+|---|---|---|
+| 训练片段 | 3,958 / 6.40 h | 3,881 / 6.47 h（补 150 ms 尾静音、30 ms 首静音，峰值 -3 dBFS，剔除削波 72 条） |
+| 初始化 | 从零 | 从 v0.3 ep69，lr 5e-5，训 60 轮，取 ep20 |
+| val mel | 0.4523 | 0.4195 |
+| ASR 错误率（100 句留出） | 0.973 | 0.972 |
+| 音节时长中位（真人 222 ms） | 185 ms | 221 ms |
+| 末尾 100 ms 能量 | 0.237 | 0.000 |
+
+三件事值得记下来：
+
+1. **重切路线被否掉。** 用页级对齐的切点重切、再转音色，两次独立训练都出现低频堆积（0–300 Hz 占比 0.45 以上）、ASR 错误率 ≥1.0；同一批音频只把标签从 T0 换成 T3，结论不变。问题在重切音频本身，不在标签。
+2. **未标调统一按 21 处理。** v0.3 有 5.75% 的音节是 T0，模型只能猜调；v0.4 全部按 T3(21) 训练，前端默认值也改成 T3。
+3. **微调比从头训练稳。** 同数据从零训练，6 次抽样里只有 2 次落到 0.88 的 ASR 错误率，其余 4 次都在 1.0 以上；热启动没有再出现这种发散。
+
+代价是取舍：擦音持平（0.465 → 0.455），边音和鼻音略退（0.741 → 0.706 / 0.765 → 0.658），送气和不送气变好（0.556 → 0.634 / 0.793 → 0.814）。
 
 ---
 
@@ -44,7 +65,7 @@ flowchart TB
     B["记号归一 + 音节切分"] --> C["声母/韵母 → IPA"]
     C --> D["每音节一个 T0–T4"]
   end
-  subgraph M["声学模型 · vits_tujia v0.3"]
+  subgraph M["声学模型 · vits_tujia v0.4"]
     E["文本编码器"] --> G["时长预测器"]
     G --> H["流 + HiFi-GAN 解码器"]
   end
@@ -241,11 +262,11 @@ v0.3 的时长预测器固定了种子，这是刻意的。想听不同版本，
 
 | 资产 | 位置 | 说明 |
 |---|---|---|
-| 推理代码 | [github.com/ibaibing/tujia-tts](https://github.com/ibaibing/tujia-tts) | PyPI 包 `tujia-tts`，当前 0.3.0 |
+| 推理代码 | [github.com/ibaibing/tujia-tts](https://github.com/ibaibing/tujia-tts) | PyPI 包 `tujia-tts`，当前 0.4.0 |
 | 代码镜像 | [gitee.com/xbaibing/tujia-tts](https://gitee.com/xbaibing/tujia-tts) | 国内访问 |
 | 模型权重 | `TujiaNLP/tujia-tts-v0.3` | ONNX 63 MB + piper 风格配置 |
 | 在线演示 | [创空间 tujia-tts-demo](https://modelscope.cn/studios/TujiaNLP/tujia-tts-demo) | 网页合成，随本版更新 |
-| 版本说明 | `releases/tujia-tts-v0.3.md` | 与 v0.2 的逐项差异 |
+| 版本说明 | `releases/tujia-tts-v0.4.md` | 与 v0.2 的逐项差异 |
 | 训练数据 | 不公开 | 发布包只含推理权重与前端 |
 
 模型权重与推理包一起分发：装 `tujia-tts` 就会带上 ONNX 文件，不需要另外下载。需要单独部署权重时，从 Hugging Face 或 ModelScope 取 `vits_tujia-v0.3.onnx` 与同名 `.onnx.json`，两者必须成对使用。
@@ -256,7 +277,7 @@ v0.3 的时长预测器固定了种子，这是刻意的。想听不同版本，
 2. Gitee 镜像 — tujia-tts（代码与文档，国内访问）。 <https://gitee.com/xbaibing/tujia-tts>
 3. Hugging Face 模型 — tujia-tts-v0.3（ONNX 权重与配置）。 <https://huggingface.co/TujiaNLP/tujia-tts-v0.3>
 4. ModelScope 模型 — tujia-tts-v0.3（国内模型托管）。 <https://modelscope.cn/models/TujiaNLP/tujia-tts-v0.3>
-5. tujia-tts v0.3 发布说明 — 与 v0.2 的逐项差异与校验值。 <https://github.com/ibaibing/tujia-tts/blob/main/releases/tujia-tts-v0.3.md>
+5. tujia-tts v0.4 发布说明 — 与 v0.3 的逐项差异与校验值。 <https://github.com/ibaibing/tujia-tts/blob/main/releases/tujia-tts-v0.4.md>
 6. TujiaNLP — 语料、正字法与 `tujia-nlp` 前端依赖。 <https://github.com/ibaibing/TujiaNLP>
 7. tujia-asr — 用于可懂度探针的反向识别管线。 <https://github.com/ibaibing/tujia-asr>
 8. PyPI — tujia-tts 0.3.0。 <https://pypi.org/project/tujia-tts/>

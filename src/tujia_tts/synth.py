@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tujia VITS (v0.3) synthesis: Ye pinyin / IPA -> 16 kHz speech.
+"""Tujia VITS (v0.4) synthesis: Ye pinyin / IPA -> 16 kHz speech.
 
 Usage:
   python3 synth.py --text "hufnix davhar niev caif kax" -o out.wav
@@ -37,10 +37,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # When used directly the model sits next to the code; once installed it lives
 # under tujia_tts/data/.
 _DATA = os.path.join(HERE, "data")
-if os.path.exists(os.path.join(_DATA, "vits_tujia-v0.3.onnx")):
+if os.path.exists(os.path.join(_DATA, "vits_tujia-v0.4.onnx")):
     HERE = _DATA
-DEFAULT_ONNX = os.path.join(HERE, "vits_tujia-v0.3.onnx")
-DEFAULT_VOICE = os.path.join(HERE, "vits_tujia-v0.3.onnx.json")
+DEFAULT_ONNX = os.path.join(HERE, "vits_tujia-v0.4.onnx")
+DEFAULT_VOICE = os.path.join(HERE, "vits_tujia-v0.4.onnx.json")
 
 TRIM_THR_DB = -40.0     # silence threshold relative to peak
 TRIM_MARGIN = 0.03      # seconds kept around the trimmed region
@@ -147,7 +147,7 @@ def write_wav(path, audio, sr):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Tujia VITS (v0.3): Ye pinyin / IPA -> speech")
+    ap = argparse.ArgumentParser(description="Tujia VITS (v0.4): Ye pinyin / IPA -> speech")
     ap.add_argument("--text", required=True,
                     help='Ye pinyin "hufnix davhar niev caif kax" or toned IPA "xu21 ni21"')
     ap.add_argument("--notation", choices=["auto", "ye", "ipa"], default="auto",
