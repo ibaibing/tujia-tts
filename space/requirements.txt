@@ -1,4 +1,4 @@
 # The runtime image may default to a domestic mirror that lags behind PyPI;
 # the official index is added as a fallback.
 --extra-index-url https://pypi.org/simple
-tujia-tts==0.4.0
+tujia-tts==0.5.0a1

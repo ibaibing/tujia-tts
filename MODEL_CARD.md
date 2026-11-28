@@ -15,100 +15,101 @@ tags:
   - single-speaker
 ---
 
-# Model Card — tujia-tts v0.4
+# Model Card — tujia-tts v0.5.0a1 (preview)
 
 ## Overview
 
-`vits_tujia-v0.4` is a single-speaker Tujia text-to-speech model. Input is **Ye pinyin**
-(the Ye De-shu transcription, tone letters `x / f / r / v`), output is **16 kHz mono**
-speech in **one voice only: badou**.
+`vits_tujia-v0.5` is a single-speaker Tujia text-to-speech model. Input is **Ye pinyin**
+(the Ye De-shu transcription, tone letters `x / f / r / v`) or **toned IPA**, output is
+**16 kHz mono** speech in **one voice only: badou**.
 
 There is no speaker conditioning: the model's `SynthesizerTrn` is single-speaker, so the
 ONNX graph has exactly three inputs (`input`, `input_lengths`, `scales`) and **no `emb_g`
 / `sid` channel**. Switching the voice requires switching the model file.
 
-This is a low-resource research release: the model is intelligible on common vocabulary
-but has the failure modes listed below.
+> **Preview release.** Training is still running (400-epoch schedule); this package ships
+> epoch 162. Loss and prosody can still move, and the duration issue listed under *Known
+> issues* is the main reason this is marked `a1` rather than final.
 
-## Training
+## Model
 
 | Item | Value |
 |---|---|
-| Checkpoint | `vits_tujia-v0.4`, validation mel loss 0.4195 |
-| Data | 3,881 clips / 6.47 h, timbre unified to **badou**; clips padded with 150 ms of trailing silence |
-| Speakers | 1 (`num_speakers=1`, empty `speaker_id_map`) |
-| Initialisation | fine-tuned for 60 epochs from the v0.3 checkpoint |
-| Sample rate | 16,000 Hz |
-| Symbols | 41 (IPA phones + `T0`–`T4` tone tokens) |
-| Export | ONNX opset 15 + piper-style `.onnx.json` |
+| Weights | `vits_tujia-v0.5.onnx` (ONNX opset 15, IR 8) + `.onnx.json` |
+| Size | 63,354,317 bytes |
+| SHA256 | `ee2f1b16c45d4d411b4f0739cf7850879bae69cae4d7983de89a7b86f436c67f` |
+| Sample rate | 16,000 Hz, mono |
+| Symbols | 40 (34 phones + `T0`–`T4` + 4 control tokens) |
+| Speakers | 1 — **badou** only |
+| Backbone | VITS, hop 256, upsample 8/8/4 |
 
-Training corpora are internal-only and are **not** distributed here.
+## Training data
+
+| Item | Value |
+|---|---|
+| Clips | 9,757 |
+| Duration | 4.655 h |
+| Source speakers | 17, **all converted to the badou timbre** |
+| Segmentation | re-cut into shorter utterances (median well under v0.4) |
+
+This is the important difference from earlier releases: the source corpus is multi-speaker,
+but every clip was passed through voice conversion to the **consented `badou` voice** and
+then EQ-matched before training. The model therefore never sees the raw timbre of the other
+speakers, and it cannot reproduce their voices. Clips are not distributed.
 
 ## Input format
 
-Two notations are accepted; the package detects which one you used.
-
-**Ye pinyin** with the four tone letters of Ye De-shu (1984): `x`=55, `f`=35, `r`=21, `v`=53.
-
 ```
-hufnix davhar niev caif kax
-af gov diex caf
-```
-
-**Toned IPA**: Chao digits, superscripts or Chao letters, one tone per syllable; a syllable
-without a tone is read as `T3` (21).
-
-```
-xu21 ni21        xu²¹ ni²¹        xu˨˩ ni˨˩
+hufnix davhar niev caif kax      Ye pinyin, tone letters      -> 你好，慢慢走
+xu21 ni21        xu²¹ ni²¹        xu˨˩ ni˨˩                  toned IPA
 ```
 
 Syllable splitting, initial/final parsing and tone-notation normalisation are delegated to
-**`tujia-nlp`** (`tujia_nlp.corpus`, `tujia_nlp.tones`). This package only keeps the table
-that the checkpoint was trained on (41 symbols, `-ng` finals as `aŋ/eŋ/iŋ/oŋ`, `z/c/s/r + i → ɿ`)
+**`tujia-nlp`** (`tujia_nlp.corpus`, `tujia_nlp.tones`). This package keeps the table the
+checkpoint was trained on (40 symbols, `-ng` finals as `aŋ/eŋ/iŋ/oŋ`, `z/c/s/r + i → ɿ`)
 and the rule that appends one tone token per syllable. Chinese characters are not supported.
+
+Symbols missing from the table (for example the retroflex stop `ʈ`, which v0.4 had and v0.5
+does not) are dropped and counted in `n_unknown` instead of raising.
 
 ## Pre- and post-processing
 
 Text side: notation normalisation → syllable split and initial/final parsing (`tujia-nlp`) →
-IPA → tone token → unknown symbols dropped and counted (never a silent `KeyError`) → empty
-input raises.
+IPA → tone token → unknown symbols dropped and counted → empty input raises.
 
 Waveform side (`postprocess()`): trim leading/trailing silence (−40 dBFS relative to peak,
 30 ms margin) → peak normalise to −1 dBFS → 10 ms fade in/out.
 
 ## Evaluation
 
-| Metric | v0.3 | v0.4 |
+| Metric | v0.4 | v0.5.0a1 |
 |---|---|---|
-| ASR error rate, 100 held-out sentences (synthesized) | 0.973 | **0.972** |
-| ASR error rate, same sentences (human recordings) | 0.805 | 0.804 |
-| Validation mel loss | 0.4523 | **0.4195** |
-| Median syllable duration (human: 222 ms) | 185 ms | **221 ms** |
-| Energy in the last 100 ms, relative to the whole clip | 0.237 | **0.000** |
+| Clips / hours | 3,881 / 6.47 h | 9,757 / 4.66 h |
+| Symbols | 41 | 40 |
+| Validation mel loss | 0.4195 | **0.4700** (epoch 162) |
+| Round-trip ASR probe | 0.972 | not run yet |
+| Median syllable duration vs human | 221 ms (human 222 ms) | see known issues |
 
-Same 100 held-out sentences for both versions: synthesize, then send through the Tujia ASR
-and compare against the expected IPA phone string. The human row is the ASR's noise floor
-on the original recordings, so only the gap between the rows is meaningful.
+**Do not compare the two `val_mel` numbers.** v0.4 was fine-tuned on a different validation
+split with a 41-symbol inventory; 0.4195 and 0.4700 are not on the same scale. The round-trip
+probe and duration statistics have not been re-run for this preview.
 
-ZIPA forced alignment on the same sentences shows aspiration moving towards the human
-values (onset present 0.556 → 0.634, human 0.802) while nasals and laterals give back a
-little (nasal 0.765 → 0.658, liquid 0.741 → 0.706). Overall onset presence is unchanged
-(0.676 → 0.679, human 0.805).
+## Known issues
 
-## Known limitations
-
-1. **Tone is approximate.** Tone tokens are trained from corpus annotation; sandhi and
+1. **Sentence-level duration drift.** Compared with epoch 152 of the same run, this
+   checkpoint is 20 % longer overall on the fixed 53-line lyric test, with the median line
+   1.20× and some lines up to 2.24×. Not a global speed change: the duration predictor is
+   unstable on a few sentence patterns. Listen for dragging before deploying.
+2. **Tone is approximate.** Tone tokens are trained from corpus annotation; sandhi and
    emphatic lengthening are not modelled.
-2. **Short single-syllable words are the weakest.** They are most sensitive to prosody
-   and to the 16 ms frame rate.
-3. **No prosody control.** No SSML, breaks, or emphasis; `length_scale` is the only knob.
-4. **One speaker only.** No voice conversion, no cloning, no multi-speaker selection.
-5. **Plosive bursts are smeared.** The 16 kHz / 256-hop configuration gives 16 ms per
-   frame, which is coarser than a stop burst; synthetic audio is brighter than real
-   recordings (high-band energy share 0.177 vs 0.104) while bursts are less dense.
-6. **Not a piper voice.** `phoneme_type: "text"` with two-character tone tokens; the
-   standard `piper` front-end (espeak-ng) cannot drive this model. Use the bundled
-   front-end.
+3. **Vocal timbre is converted, not recorded.** All training audio is VC output in the badou
+   timbre; very breathy or very young source voices may have artefacts that survived VC.
+4. **Single-syllable words remain the weakest.** Most sensitive to prosody and to the 16 ms
+   frame rate.
+5. **No prosody control.** No SSML, breaks, or emphasis; `length_scale` is the only knob.
+6. **Phoneme table changed.** `.onnx.json` files from v0.4 are **not** interchangeable with
+   this model (41 → 40 symbols).
+7. **Preview.** Training continues; do not pin production systems to `0.5.0a1`.
 
 ## Intended use
 
@@ -120,8 +121,9 @@ that the output is a real person's recording, or commercial redistribution.
 
 ## Licensing and ethics
 
-Code is MIT. Weights are research-use only under `NOTICE`. Speaker consent has not been
-confirmed per source recording; commercial use or redistribution requires a rights review.
+Code is MIT. Weights are research-use only under `NOTICE`. The training audio is voice
+converted into the consented `badou` timbre; the original speakers' voices are not
+reproduced by this model. Commercial use or redistribution still requires a rights review.
 Tujia is endangered — outputs should be reviewed by native speakers before community or
 educational use.
 
@@ -133,3 +135,4 @@ educational use.
 | v0.2 | 4.10 h / 3,403 clips, unified to badou | First public release |
 | v0.3 | 6.40 h / 3,958 clips, unified to badou | Longer corpus, deterministic duration, toned-IPA input |
 | v0.4 | 6.47 h / 3,881 clips, unified to badou, trailing silence padded | Fine-tune of v0.3: human-like syllable timing, no abrupt clip endings, unmarked syllables read as 21 |
+| v0.5.0a1 | 4.66 h / 9,757 clips, 17 speakers VC'd to badou, re-cut | Trained from scratch; 40-symbol table (ʈ removed); preview with duration drift |

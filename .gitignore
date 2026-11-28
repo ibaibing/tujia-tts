@@ -5,3 +5,4 @@ dist/
 *.egg-info/
 .venv/
 .DS_Store
+space/gen_ipa_kb.py

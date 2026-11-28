@@ -4,7 +4,7 @@
 Syllable splitting, initial/final parsing and tone-notation normalisation are
 delegated to **tujia-nlp** (``tujia_nlp.corpus`` / ``tujia_nlp.tones``); this
 module does not carry a second parser. It only keeps what is bound to the
-checkpoint: the 41-symbol inventory of v0.2 and the rule that appends one
+checkpoint: the 40-symbol inventory of v0.5 and the rule that appends one
 ``T0``-``T4`` tone token per syllable (unmarked syllables are read as 21 = ``T3``).
 
 Accepted input:
@@ -31,7 +31,9 @@ PAD, BOS, EOS, SPACE = "_", "^", "$", " "
 
 # Initial/final tables come straight from tujia-nlp, the same tables used for
 # training: an/ang -> ã, en/eng -> ẽ, in/ing -> ĩ, on/ong -> ũ. The absence of
-# õ and of aŋ in the v0.2 inventory follows directly from those tables.
+# õ and of aŋ in the v0.5 inventory follows directly from those tables; v0.5
+# also drops the retroflex stop ʈ that v0.4 carried (unknown symbols are skipped
+# and counted, so old spellings do not raise).
 # Tone: Ye tone letter / Chao digits -> tone token. Unmarked syllables default to
 # T3 (21): Tujia has no independent neutral tone, and the v0.4 model was trained
 # with 21 as the unmarked reading.

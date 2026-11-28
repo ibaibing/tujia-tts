@@ -6,7 +6,7 @@
   "voice": "en-us"
  },
  "phoneme_type": "text",
- "num_symbols": 41,
+ "num_symbols": 40,
  "num_speakers": 1,
  "inference": {
   "noise_scale": 0.667,
@@ -113,29 +113,26 @@
   "ʂ": [
    32
   ],
-  "ʈ": [
+  "ʰ": [
    33
   ],
-  "ʰ": [
+  "ẽ": [
    34
   ],
-  "ẽ": [
+  "T0": [
    35
   ],
-  "T0": [
+  "T1": [
    36
   ],
-  "T1": [
+  "T2": [
    37
   ],
-  "T2": [
+  "T3": [
    38
   ],
-  "T3": [
-   39
-  ],
   "T4": [
-   40
+   39
   ]
  },
  "speaker_id_map": {},

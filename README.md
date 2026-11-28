@@ -4,8 +4,11 @@ Text-to-speech for **Northern Tujia (Longshan Miaoertan standard pronunciation)*
 Input is **Ye pinyin** (`hufnix davhar niev caif kax`) or **toned IPA** (`xu21 ni21`),
 output is **16 kHz mono** speech.
 
-> **v0.4 released — single speaker, `badou` only.**
-> Weights: `vits_tujia-v0.4` (6.47 h / 3,881 clips, validation mel loss 0.4195).
+> **v0.5.0a1 preview — single speaker, `badou` only.**
+> Weights: `vits_tujia-v0.5` (4.66 h / 9,757 clips, 17 source speakers voice-converted to
+> the badou timbre, validation mel loss 0.4700 at epoch 162).
+> Training is still running and the duration predictor shows sentence-level drift; treat
+> this as a preview, not a stable release.
 > The ONNX graph has no speaker input, so there is no second voice to select.
 > Details and limitations: [MODEL_CARD.md](MODEL_CARD.md).
 
@@ -41,7 +44,8 @@ supported (they raise if nothing usable is left).
 | v0.1 | 2,390 clips / 1.87 h, male teacher | VITS | Failed the intelligibility probe; not released |
 | v0.2 | 3,403 clips / 4.10 h, unified to `badou` | VITS + ONNX | Superseded by v0.3 |
 | v0.3 | 3,958 clips / 6.40 h, unified to `badou` | VITS + ONNX | Superseded by v0.4 |
-| v0.4 | 3,881 clips / 6.47 h, unified to `badou` | VITS + ONNX | **Current release** |
+| v0.4 | 3,881 clips / 6.47 h, unified to `badou` | VITS + ONNX | Superseded by v0.5 |
+| v0.5.0a1 | 9,757 clips / 4.66 h, 17 speakers VC'd to `badou` | VITS + ONNX | **Preview release** |
 
 A version ships only after the intelligibility probe, never on training loss alone.
 
@@ -63,20 +67,18 @@ changes.
 
 ## Evaluation
 
-| Metric | v0.3 | v0.4 |
+| Metric | v0.4 | v0.5.0a1 (preview) |
 |---|---|---|
-| ASR error rate, 100 held-out sentences (synthesized) | 0.973 | **0.972** |
-| ASR error rate, same sentences (human recordings) | 0.805 | 0.804 |
-| Validation mel loss | 0.4523 | **0.4195** |
-| Median syllable duration (human: 222 ms) | 185 ms | **221 ms** |
-| Energy in the last 100 ms, relative to the whole clip | 0.237 | **0.000** |
+| ASR error rate, 100 held-out sentences (synthesized) | **0.972** | not run yet |
+| ASR error rate, same sentences (human recordings) | 0.804 | not run yet |
+| Validation mel loss | 0.4195 | 0.4700 (not comparable, different split) |
+| Median syllable duration (human: 222 ms) | 221 ms | under review |
+| Energy in the last 100 ms, relative to the whole clip | **0.000** | under review |
 
-The ASR row is the same 100 sentences for both versions: each sentence is synthesized and
-sent through the Tujia ASR, and compared against the expected phone string. The human row
-is the ASR's noise floor on the original recordings, so only the gap between the rows is
-meaningful. v0.4 is a fine-tune of v0.3 on silence-padded clips, which is why the
-intelligibility is unchanged while syllable timing and clip endings move towards the
-human recordings.
+v0.5 is trained from scratch on a different corpus split and a 40-symbol inventory, so its
+validation loss is not on the same scale as v0.4. The round-trip ASR probe and duration
+statistics will be filled in once training finishes; do not treat the preview as a quality
+improvement over v0.4 yet.
 
 Tone acceptance by native listeners is collected per release and recorded in `releases/`.
 
@@ -90,7 +92,7 @@ NOTICE                     usage boundaries for weights
 requirements.txt           inference dependencies
 pyproject.toml             tujia-tts package metadata
 src/tujia_tts/             front-end (Ye pinyin / IPA), synthesis, post-processing
-src/tujia_tts/data/        vits_tujia-v0.4.onnx + piper-style config
+src/tujia_tts/data/        vits_tujia-v0.5.onnx + piper-style config
 examples/                  sample outputs with their input text
 docs/usage.md              install, devices, sample-rate notes
 docs/note.md               long-form technical and usage note

@@ -8,7 +8,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="${VERSION:-v0.4}"
+VERSION="${VERSION:-v0.5}"
 ORG="${ORG:-TujiaNLP}"
 REPO="${REPO:-tujia-tts-${VERSION}}"
 MODEL="${MODEL:-$ROOT/src/tujia_tts/data/vits_tujia-${VERSION}.onnx}"

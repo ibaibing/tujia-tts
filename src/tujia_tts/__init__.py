@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """tujia-tts: Tujia speech synthesis (Ye pinyin / IPA -> 16 kHz waveform).
 
-Release v0.4, single speaker: **badou**.
+Release v0.5.0a1 (preview), single speaker: **badou**.
 """
 from .frontend import (  # noqa: F401
     detect_notation,
@@ -18,7 +18,7 @@ from .synth import (  # noqa: F401
     write_wav,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.5.0a1"
 __all__ = [
     "synthesize", "postprocess", "write_wav",
     "tokenize", "tokenize_ye", "tokenize_ipa", "to_ids", "detect_notation",
